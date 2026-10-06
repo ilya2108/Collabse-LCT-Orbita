@@ -1,0 +1,219 @@
+# Прод-стенд «ФСП.Орбита» (VPS): caddy (авто-TLS) → frontend-nginx → backend; keycloak за
+# /auth, mailpit («Почта стенда») за /mail с basic-auth. Наружу — только 80/443 Caddy.
+# Деплой: make prod-deploy (vm-deploy.sh, COMPOSE_FILE=этот файл); окружение —
+# deploy/compose/.env (gen-dotenv.sh генерирует секреты; PUBLIC_DOMAIN, ACME_EMAIL,
+# MAILPIT_BASIC_AUTH, GIGACHAT_*/TELEGRAM_* заполняются руками — docs/08-run.md §8).
+#
+# Топология (комментарий в frontend/nginx.conf): Caddy — край TLS и единственный публичный
+# порт; nginx фронта отдаёт SPA (fallback /index.html, включая /tma/*), проксирует /api →
+# backend:8000 (таймаут 120 с под LLM) и блокирует /api/v1/internal/*. Поэтому /api идёт
+# через frontend, а не напрямую из Caddy — иначе блокировка internal-ручек потерялась бы.
+# Требование организаторов: стенд живёт после дедлайна — restart: unless-stopped везде,
+# кроме одноразового migrate (alembic идемпотентен, но перезапускать его в цикле незачем).
+
+name: fsp-prod
+
+# переменные backend'а общие для backend/migrate/bot (контракт — CLAUDE.md «Env backend»)
+x-backend-env: &backend-env
+  APP_ENV: prod
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-fsp}:${POSTGRES_PASSWORD:-fsp}@postgres:5432/fsp
+  # KC_HTTP_RELATIVE_PATH=/auth ⇒ внутренний URL с /auth: config.py строит jwks_url как
+  # <KEYCLOAK_INTERNAL_URL>/realms/<realm>/protocol/openid-connect/certs
+  KEYCLOAK_INTERNAL_URL: http://keycloak:8080/auth
+  # iss токенов — публичный адрес Keycloak за Caddy (KC_HOSTNAME ниже)
+  KEYCLOAK_ISSUER: https://${PUBLIC_DOMAIN:?заполните PUBLIC_DOMAIN в deploy/compose/.env}/auth/realms/fsp
+  KEYCLOAK_REALM: fsp
+  KEYCLOAK_AUDIENCES: account,fsp-frontend
+  KEYCLOAK_ADMIN_CLIENT_ID: fsp-backend-admin
+  KEYCLOAK_ADMIN_CLIENT_SECRET: ${BACKEND_ADMIN_CLIENT_SECRET:?нет в .env — запустите deploy/scripts/gen-dotenv.sh}
+  PII_FERNET_KEYS: ${PII_FERNET_KEYS:?нет в .env — запустите deploy/scripts/gen-dotenv.sh}
+  PII_HMAC_KEY: ${PII_HMAC_KEY:?нет в .env — запустите deploy/scripts/gen-dotenv.sh}
+  INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?нет в .env — запустите deploy/scripts/gen-dotenv.sh}
+  FRONTEND_PUBLIC_URL: https://${PUBLIC_DOMAIN}
+  LLM_PROVIDER: ${LLM_PROVIDER:-stub}
+  GIGACHAT_CREDENTIALS: ${GIGACHAT_CREDENTIALS:-}
+  GIGACHAT_SCOPE: ${GIGACHAT_SCOPE:-GIGACHAT_API_PERS}
+  GIGACHAT_MODEL_STRONG: ${GIGACHAT_MODEL_STRONG:-GigaChat-2-Pro}
+  GIGACHAT_MODEL_FAST: ${GIGACHAT_MODEL_FAST:-GigaChat-2-Lite}
+  GIGACHAT_CA_BUNDLE: ${GIGACHAT_CA_BUNDLE:-}
+  GIGACHAT_VERIFY_SSL_CERTS: ${GIGACHAT_VERIFY_SSL_CERTS:-true}
+  YC_FOLDER_ID: ${YC_FOLDER_ID:-}
+  YC_API_KEY: ${YC_API_KEY:-}
+  YANDEX_MODEL: ${YANDEX_MODEL:-yandexgpt}
+  LLM_DAILY_TOKEN_CAP: ${LLM_DAILY_TOKEN_CAP:-2000000}
+  LLM_MAX_CONCURRENCY: ${LLM_MAX_CONCURRENCY:-4}
+  LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-60}
+  SKILLS_DIR: app/skills
+  TEST_DEMO_MODE: ${TEST_DEMO_MODE:-false}
+  DEMO_COOLDOWN_SECONDS: ${DEMO_COOLDOWN_SECONDS:-300}
+  GRADE_COOLDOWN_DAYS: ${GRADE_COOLDOWN_DAYS:-90}
+  TELEGRAM_BOT_MODE: ${TELEGRAM_BOT_MODE:-stub}
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-OrbitaFspBot}
+
+# прод-стадия образа backend: runtime (slim, non-root, без hot-reload и bind-mount)
+x-backend-build: &backend-build
+  context: ../../backend
+  target: runtime
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fsp
+      POSTGRES_USER: ${POSTGRES_USER:-fsp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fsp}
+    # порт наружу не публикуется: БД доступна только внутренней сети compose
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro # 01-init.sql: CREATE DATABASE keycloak
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d fsp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    restart: unless-stopped
+    # entrypoint-обёртка: KC 26 сам НЕ подставляет ${env.*} в realm при импорте;
+    # import-realm.sh среди прочего подставляет FRONTEND_PUBLIC_URL → redirectUris/webOrigins
+    # получают https://<домен>/* без правок realm-fsp.json. Импорт выполняется ТОЛЬКО при
+    # первом старте (пустая БД keycloak) — смена домена позже: docs/08-run.md §8.
+    entrypoint: ["/bin/bash", "/realm-src/import-realm.sh"]
+    # прод-режим: TLS терминирует Caddy, Keycloak за прокси по HTTP на под-пути /auth
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-fsp}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-fsp}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:?нет в .env — запустите deploy/scripts/gen-dotenv.sh}
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "8080"
+      KC_PROXY_HEADERS: xforwarded
+      # Keycloak 26 живёт на под-пути /auth (Caddy проксирует /auth/* как есть);
+      # hostname с путём — канонический способ задать публичный адрес за реверс-прокси
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HOSTNAME: https://${PUBLIC_DOMAIN}/auth
+      KC_HEALTH_ENABLED: "true"
+      # management-порт 9000 оставляем на корне, чтобы healthcheck совпадал с dev
+      # (иначе http-management-relative-path унаследовал бы /auth)
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
+      # подстановка ${env.*} в realm-fsp.json при импорте (import-realm.sh)
+      BACKEND_ADMIN_CLIENT_SECRET: ${BACKEND_ADMIN_CLIENT_SECRET:?нет в .env — запустите deploy/scripts/gen-dotenv.sh}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:?нет в .env — запустите deploy/scripts/gen-dotenv.sh}
+      FRONTEND_PUBLIC_URL: https://${PUBLIC_DOMAIN}
+    # порты наружу не публикуются: консоль — только через https://<домен>/auth/admin
+    volumes:
+      - ../keycloak/realm-fsp.json:/realm-src/realm-fsp.json:ro
+      - ../keycloak/import-realm.sh:/realm-src/import-realm.sh:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      mailpit: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q 200"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  # «Почта стенда»: письма подтверждения email и сброса пароля. Портов наружу нет —
+  # UI только через Caddy: https://<домен>/mail/ за basic-auth (MP_WEBROOT=mail).
+  mailpit:
+    image: axllent/mailpit:v1.31
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      MP_WEBROOT: mail
+      MP_MAX_AGE: 24h # на публичном стенде письма старше суток удаляются
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # миграции Alembic: одноразовый запуск перед backend (тот же образ, идемпотентен).
+  # Исключение из restart: unless-stopped — одноразовому контейнеру рестарт не нужен.
+  migrate:
+    build: *backend-build
+    image: fsp-backend:prod
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    environment: *backend-env
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  backend:
+    build: *backend-build
+    image: fsp-backend:prod
+    restart: unless-stopped
+    # команда и healthcheck (/healthz) — из runtime-стадии Dockerfile (1 воркер намеренно)
+    environment: *backend-env
+    volumes:
+      # сертификаты НУЦ Минцифры для GigaChat (см. docs/08-run.md); пустая папка — не мешает
+      - ${CERTS_DIR:-/opt/certs}:/certs:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      keycloak: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+
+  # телеграм-бот «ФСП.Орбита»: stub — без сети и токена (исходящие в tg_outbox),
+  # polling — реальный бот (TELEGRAM_BOT_TOKEN от @BotFather)
+  bot:
+    build: *backend-build
+    image: fsp-backend:prod
+    restart: unless-stopped
+    command: ["python", "-m", "app.tools.bot"]
+    environment: *backend-env
+    volumes:
+      - ${CERTS_DIR:-/opt/certs}:/certs:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    # HTTP-порта у бота нет: HEALTHCHECK образа (GET :8000/healthz) для него всегда красный —
+    # проверяем, что PID 1 — именно процесс бота
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0 if b'app.tools.bot' in open('/proc/1/cmdline', 'rb').read() else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # фронт: nginx-unprivileged со статикой SPA, прокси /api и блокировкой internal-ручек —
+  # единственный upstream Caddy для «всего остального»
+  frontend:
+    build: {context: ../../frontend}
+    image: fsp-frontend:prod
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_URL: https://${PUBLIC_DOMAIN}/auth
+      KEYCLOAK_REALM: fsp
+      KEYCLOAK_CLIENT_ID: fsp-frontend
+      API_BASE: /api
+    depends_on: [backend]
+
+  # край стенда: автоматический HTTPS (Let's Encrypt), маршруты — deploy/caddy/Caddyfile
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?заполните ACME_EMAIL в deploy/compose/.env}
+      # bcrypt-хэш пароля «Почты стенда»; в .env символы $ удвоены ($$) — см. .env.example
+      MAILPIT_BASIC_AUTH: ${MAILPIT_BASIC_AUTH:?заполните MAILPIT_BASIC_AUTH в deploy/compose/.env}
+    volumes:
+      - ../caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # сертификаты Let's Encrypt — переживают пересоздание контейнера
+      - caddy_config:/config
+    depends_on: [frontend, keycloak, mailpit]
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

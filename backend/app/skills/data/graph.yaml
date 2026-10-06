@@ -1,0 +1,150 @@
+# Граф навыков специализации «Данные» — статус preview (PLAN.md §3.2, §5.1).
+#
+# Граф есть, теста и банка шаблонов нет: специализация не предлагается в опросе,
+# категория по ней возможна только через сид/bulk; потребности работодателя по данным
+# разбираются в подграф этой специализации с пометкой preview_no_test_bank.
+#
+# Теоретическая основа: Квантовая модель компетенций К. Кичинского (2023, открытая
+# публикация, spectralthinking.org). Граф, узлы, рёбра и параметры — разработка команды.
+
+specialization:
+  code: data
+  title: Данные
+  status: preview
+  graph_version: "0.1.0"
+
+layers:
+  - {code: D, title: Глубина}
+  - {code: B, title: База}
+  - {code: C, title: Контекст}
+
+decay:
+  half_life_days: {test: 240, fsp: 365, regular: 120}
+  layer_factor: {D: 1.5, B: 1.0, C: 0.75}
+
+weights:
+  test:
+    - {min_score: 0.85, w0: 1.0}
+    - {min_score: 0.7, w0: 0.85}
+    - {min_score: 0.5, w0: 0.45}
+  regular:
+    - {min_score: 0.7, w0: 0.6}
+    - {min_score: 0.5, w0: 0.3}
+  demo_multiplier: 0.85
+
+thresholds:
+  active: 0.5
+  fresh: 0.8
+  dim: 0.5
+
+nodes:
+  - id: data.D1
+    code: D1
+    layer: D
+    title: Язык и инструменты обработки данных
+    description: Python/SQL, pandas и векторные вычисления, типы данных, работа с памятью
+  - id: data.D2
+    code: D2
+    layer: D
+    title: Структуры данных и алгоритмы для данных
+    description: сложность, сортировки и соединения, хеширование, потоковые и приближённые алгоритмы
+  - id: data.D3
+    code: D3
+    layer: D
+    title: Статистика и вероятность
+    description: распределения, проверка гипотез, доверительные интервалы, смещения выборки
+  - id: data.D4
+    code: D4
+    layer: D
+    title: Устройство хранилищ данных
+    description: строковые и колоночные СУБД, партиционирование, индексы, OLTP/OLAP
+  - id: data.B1
+    code: B1
+    layer: B
+    title: Моделирование данных
+    description: схемы «звезда»/«снежинка», нормализация, версионирование схем, словарь данных
+  - id: data.B2
+    code: B2
+    layer: B
+    title: Пайплайны ETL/ELT
+    description: оркестрация, инкрементальная загрузка, идемпотентность, повторные запуски
+  - id: data.B3
+    code: B3
+    layer: B
+    title: Качество данных и тесты
+    description: валидация, контракты данных, мониторинг полноты и свежести, дубликаты
+  - id: data.B4
+    code: B4
+    layer: B
+    title: Аналитический SQL и оптимизация
+    description: оконные функции, планы запросов, материализация, агрегаты, CTE
+  - id: data.B5
+    code: B5
+    layer: B
+    title: Доступ и защита данных
+    description: маскирование, разграничение доступа, ПДн, аудит обращений
+  - id: data.C1
+    code: C1
+    layer: C
+    title: Инфраструктура и поставка данных
+    description: Docker, CI, планировщики (Airflow), dbt, облачные хранилища
+  - id: data.C2
+    code: C2
+    layer: C
+    title: Интеграции и потоки
+    description: Kafka, CDC, API-источники, форматы обмена, коннекторы
+  - id: data.C3
+    code: C3
+    layer: C
+    title: Визуализация и метрики
+    description: BI-инструменты, дашборды, продуктовые метрики, отчёты по экспериментам
+  - id: data.C4
+    code: C4
+    layer: C
+    title: Командная работа и коммуникация с бизнесом
+    description: постановка задачи, ревью, документация, презентация результатов заказчику
+
+edges:
+  # вертикальные D → B
+  - {source: data.D1, target: data.B2, kind: vertical}
+  - {source: data.D1, target: data.B4, kind: vertical}
+  - {source: data.D2, target: data.B2, kind: vertical}
+  - {source: data.D2, target: data.B4, kind: vertical}
+  - {source: data.D3, target: data.B3, kind: vertical}
+  - {source: data.D3, target: data.B4, kind: vertical}
+  - {source: data.D4, target: data.B1, kind: vertical}
+  - {source: data.D4, target: data.B4, kind: vertical}
+  # вертикальные B → C
+  - {source: data.B1, target: data.C3, kind: vertical}
+  - {source: data.B1, target: data.C4, kind: vertical}
+  - {source: data.B2, target: data.C1, kind: vertical}
+  - {source: data.B2, target: data.C2, kind: vertical}
+  - {source: data.B3, target: data.C1, kind: vertical}
+  - {source: data.B3, target: data.C3, kind: vertical}
+  - {source: data.B4, target: data.C3, kind: vertical}
+  - {source: data.B5, target: data.C1, kind: vertical}
+  - {source: data.B5, target: data.C2, kind: vertical}
+  # боковые D
+  - {source: data.D1, target: data.D2, kind: lateral}
+  - {source: data.D2, target: data.D3, kind: lateral}
+  - {source: data.D3, target: data.D4, kind: lateral}
+  # боковые B
+  - {source: data.B1, target: data.B2, kind: lateral}
+  - {source: data.B1, target: data.B4, kind: lateral}
+  - {source: data.B2, target: data.B3, kind: lateral}
+  - {source: data.B2, target: data.B4, kind: lateral}
+  - {source: data.B3, target: data.B4, kind: lateral}
+  - {source: data.B4, target: data.B5, kind: lateral}
+  - {source: data.B1, target: data.B5, kind: lateral}
+  # боковые C
+  - {source: data.C1, target: data.C2, kind: lateral}
+  - {source: data.C2, target: data.C3, kind: lateral}
+  - {source: data.C1, target: data.C4, kind: lateral}
+  - {source: data.C3, target: data.C4, kind: lateral}
+
+bridges:
+  - {source: data.D4, target: be.D4, kind: bridge, title: устройство СУБД}
+  - {source: data.B5, target: be.B5, kind: bridge, title: защита данных}
+  - {source: data.C2, target: be.C2, kind: bridge, title: интеграции}
+  - {source: data.C4, target: be.C4, kind: bridge, title: команда}
+  - {source: data.C4, target: fe.C4, kind: bridge, title: команда}

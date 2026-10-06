@@ -1,0 +1,113 @@
+# Эталонный шаблон be.B3 L2 (Слой данных, анализ ORM-кода).
+# Формат — docs/templates-spec.md. Вид: code_review (строка 50 %, объяснение 50 %).
+id: be.B3.L2.n_plus_one
+node: be.B3
+level: 2
+kind: code_review
+title: "N+1 при обращении к ленивому отношению в цикле"
+status: draft
+author: "эталон, 6 октября (W4)"
+defect_class: n_plus_one
+
+concept: >-
+  Ленивая загрузка отношений ORM: обращение к связанному объекту внутри цикла по результату
+  выборки выполняет по запросу на каждую строку (N+1); устранение — загрузка связи вместе
+  с выборкой (selectinload / joinedload) или выборка нужных колонок через JOIN; проверка
+  числом запросов.
+
+invariant: >-
+  ORM-функция выбирает список объектов и в цикле собирает строки отчёта/ответа; внутри цикла
+  ровно одно обращение к ленивому отношению (many-to-one или one-to-many); остальные поля —
+  колонки той же таблицы; в условии названы класс дефекта, симптом (много одинаковых коротких
+  запросов) и настройка загрузки отношения; в коде ровно один дефект, 15–40 строк.
+
+vary: >-
+  Домен и имена моделей (заказы/клиенты, статьи/авторы, задачи/исполнители), ORM
+  (SQLAlchemy 2 sync, Django ORM), тип отношения (many-to-one: имя клиента; one-to-many:
+  len(items)), число строк в выборке, формат строки отчёта.
+
+forbidden_changes: >-
+  Не добавлять второй дефект (гонку, инъекцию, утечку сессии). Не называть класс дефекта
+  и не оставлять подсказок в комментариях к коду. Не убирать ленивость отношения (иначе
+  дефекта нет) и не переводить код на async-сессию (там ленивая загрузка падает ошибкой,
+  а не N+1). Не менять формат ответа «номер строки + объяснение».
+
+trap: >-
+  Указать строку с `.limit(...)` или `.all()` как причину («загрузили слишком много»);
+  предложить кэш связанных объектов в словаре внутри цикла вместо исправления запроса;
+  указать строку с обращением к обычной колонке (`items_count`, `total_amount`).
+
+stack_tags: [python, sqlalchemy, sql]
+
+rubric:
+  - id: cause
+    w: 0.4
+    text: >-
+      Объясняет механизм: обращение к ленивому отношению внутри цикла выполняет отдельный
+      SELECT для каждой строки — один запрос за списком плюс N за связанными объектами.
+  - id: fix
+    w: 0.4
+    text: >-
+      Предлагает корректное устранение: загрузить связь вместе с выборкой
+      (selectinload / joinedload) или выбрать нужные колонки через JOIN; не «кэш в цикле».
+  - id: verification
+    w: 0.2
+    text: >-
+      Указывает, как убедиться: счётчик запросов в тесте / echo SQL — ожидаем 1–2 запроса
+      вместо N+1.
+
+anchor_variant:
+  statement: |
+    Функция ниже строит строки отчёта для выгрузки в бухгалтерию. При `limit=500` она
+    выполняется 6–8 секунд; в логе СУБД за это время — сотни коротких одинаковых запросов
+    `SELECT ... FROM customers WHERE customers.id = $1`.
+
+    Модели: `Order.customer` — отношение many-to-one к `Customer` с загрузкой по умолчанию
+    (`lazy="select"`); `items_count` и `total_amount` — обычные колонки таблицы `orders`.
+    Сессия синхронная (SQLAlchemy 2.x). Строки пронумерованы с 1.
+
+    Укажите номер строки, в которой проявляется дефект класса N+1, и объясните, как его
+    устранить и как проверить, что он устранён.
+  code: |
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from app.models import Order
+
+
+    def build_orders_report(session: Session, status: str, limit: int = 500) -> list[dict]:
+        """Строки отчёта «заказы по статусу» для выгрузки в бухгалтерию."""
+        stmt = select(Order).where(Order.status == status)
+        stmt = stmt.order_by(Order.created_at.desc()).limit(limit)
+        orders = session.scalars(stmt).all()
+        rows: list[dict] = []
+        for order in orders:
+            rows.append(
+                {
+                    "order_id": order.id,
+                    "created_at": order.created_at.isoformat(),
+                    "customer": order.customer.display_name,
+                    "items_count": order.items_count,
+                    "total": str(order.total_amount),
+                }
+            )
+        return rows
+  answer_key:
+    line: 18
+    # строка 9 — запрос без eager-load: указание на причину тоже засчитывается
+    accepted_lines: [9, 18]
+  reference_answer: |
+    Строка 18: обращение `order.customer.display_name` внутри цикла для каждого из 500
+    заказов выполняет отдельный SELECT к `customers` (ленивая загрузка отношения) —
+    1 запрос за заказами + 500 за клиентами. Исправление: загрузить клиентов вместе
+    с заказами — `select(Order).options(selectinload(Order.customer))` (один дополнительный
+    запрос `WHERE id IN (...)`) или `joinedload(Order.customer)` (один JOIN); либо выбрать
+    только нужные колонки: `select(Order.id, Order.created_at, Customer.display_name,
+    Order.items_count, Order.total_amount).join(Order.customer)`. Проверка: счётчик запросов
+    в тесте (событие `before_cursor_execute` или `echo=True`) — ожидаем 1–2 запроса
+    вместо 501, и время выполнения в десятки миллисекунд.
+  estimated_minutes: 3
+
+difficulty_anchor: {p_junior: 0.35, p_middle: 0.75, p_senior: 0.9}
+max_time_sec: 240
+max_answer_chars: 600

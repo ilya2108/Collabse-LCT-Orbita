@@ -1,0 +1,99 @@
+# Профили грейдов (PLAN.md §3.4) и демо-профили (§4.3).
+#
+# Грейд присваивается по подтверждениям текущей тестовой сессии на целевом подграфе T:
+# активно ≥ min_active узлов T, уровень по графу Q_T = |A| − C(A) ≥ min_q, плюс
+# структурные ограничения (constraints):
+#   outside_layer: {layer, min_active}   — активен ≥ min_active узлов вне слоя («вышел за базу»);
+#   layers_min_active: {D: n, C: m}       — активно ≥ n узлов слоя D и ≥ m узлов слоя C;
+#   walker: true                          — активны узлы всех трёх слоёв своей специализации.
+# budget — жёсткий потолок сессии: одно задание на узел T + второе только при пограничном балле.
+# demo — укороченный связный подграф из T с теми же структурными условиями (TEST_DEMO_MODE),
+# без пограничных вторых заданий и персонального сценария; результат присваивает категорию.
+version: 1
+
+specializations:
+  be:
+    - grade: junior
+      task_level: 1
+      target_nodes: [be.B1, be.B2, be.B3, be.D1]
+      min_active: 3
+      min_q: 2
+      constraints: {}
+      budget: {min_items: 4, max_items: 8}
+      demo:
+        target_nodes: [be.B1, be.B2, be.D1]
+        min_active: 2
+        min_q: 1
+        constraints: {}
+    - grade: middle
+      task_level: 2
+      target_nodes: [be.B1, be.B2, be.B3, be.B4, be.D1, be.D4, be.C1]
+      min_active: 5
+      min_q: 4
+      constraints:
+        outside_layer: {layer: B, min_active: 1}
+      budget: {min_items: 7, max_items: 11}
+      demo:
+        target_nodes: [be.B1, be.B2, be.D1, be.C1]
+        min_active: 3
+        min_q: 2
+        constraints:
+          outside_layer: {layer: B, min_active: 1}
+    - grade: senior
+      task_level: 3
+      target_nodes: [be.B1, be.B2, be.B3, be.B4, be.B5, be.D3, be.D4, be.C1, be.C2, be.C3]
+      min_active: 7
+      min_q: 6
+      constraints:
+        layers_min_active: {D: 1, C: 1}
+      budget: {min_items: 10, max_items: 12}
+      demo:
+        target_nodes: [be.B1, be.B4, be.D4, be.C2, be.C3]
+        min_active: 4
+        min_q: 3
+        constraints:
+          layers_min_active: {D: 1, C: 1}
+
+  fe:
+    - grade: junior
+      task_level: 1
+      target_nodes: [fe.B1, fe.B2, fe.B3, fe.D1]
+      min_active: 3
+      min_q: 2
+      constraints: {}
+      budget: {min_items: 4, max_items: 8}
+      demo:
+        target_nodes: [fe.B1, fe.B2, fe.D1]
+        min_active: 2
+        min_q: 1
+        constraints: {}
+    - grade: middle
+      task_level: 2
+      target_nodes: [fe.B1, fe.B2, fe.B3, fe.B4, fe.D1, fe.D4, fe.C1]
+      min_active: 5
+      min_q: 4
+      constraints:
+        outside_layer: {layer: B, min_active: 1}
+      budget: {min_items: 7, max_items: 11}
+      # связный аналог be-демо {B1, B2, D1, C1}: в fe узел C1 соединён с базой только через B4
+      demo:
+        target_nodes: [fe.B2, fe.B4, fe.D1, fe.C1]
+        min_active: 3
+        min_q: 2
+        constraints:
+          outside_layer: {layer: B, min_active: 1}
+    - grade: senior
+      task_level: 3
+      target_nodes: [fe.B1, fe.B2, fe.B3, fe.B4, fe.B5, fe.D3, fe.D4, fe.C1, fe.C2, fe.C3]
+      min_active: 7
+      min_q: 6
+      constraints:
+        layers_min_active: {D: 1, C: 1}
+      budget: {min_items: 10, max_items: 12}
+      # связный аналог be-демо {B1, B4, D4, C2, C3}: цепочка B1–C3–C2–B5–D4
+      demo:
+        target_nodes: [fe.B1, fe.B5, fe.D4, fe.C2, fe.C3]
+        min_active: 4
+        min_q: 3
+        constraints:
+          layers_min_active: {D: 1, C: 1}

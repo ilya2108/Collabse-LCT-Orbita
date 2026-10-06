@@ -1,0 +1,137 @@
+{
+  "realm": "fsp",
+  "displayName": "Орбита ФСП",
+  "displayNameHtml": "Орбита ФСП",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": true,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "rememberMe": true,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(10) and notUsername and notEmail",
+  "permanentLockout": false,
+  "loginTheme": "keycloak",
+  "accountTheme": "keycloak.v3",
+  "emailTheme": "keycloak",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "ru",
+    "en"
+  ],
+  "defaultLocale": "ru",
+  "accessTokenLifespan": 1800,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 36000,
+  "actionTokenGeneratedByUserLifespan": 86400,
+  "requiredCredentials": [
+    "password"
+  ],
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "noreply@fsp.local",
+    "fromDisplayName": "Орбита ФСП",
+    "replyTo": "",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "candidate",
+        "description": "Кандидат: профиль, тест, подтверждения навыков, приглашения (роль хранится в БД; здесь — для сервисных сценариев)"
+      },
+      {
+        "name": "employer",
+        "description": "Работодатель: компания, потребности, подборка, приглашения (роль хранится в БД; здесь — для сервисных сценариев)"
+      },
+      {
+        "name": "admin",
+        "description": "Администратор платформы: назначается только в Keycloak, backend берёт её из токена"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "fsp-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Администратор",
+      "lastName": "Орбиты",
+      "email": "admin@fsp.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${env.DEMO_ADMIN_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ]
+    },
+    {
+      "username": "service-account-fsp-backend-admin",
+      "enabled": true,
+      "serviceAccountClientId": "fsp-backend-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users"
+        ]
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "fsp-frontend",
+      "name": "Орбита ФСП — SPA",
+      "description": "Публичный клиент браузерного приложения: Authorization Code + PKCE (S256)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": true,
+      "rootUrl": "http://localhost:5173",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:5173/*",
+        "${env.FRONTEND_PUBLIC_URL}/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:3000/*##http://127.0.0.1:5173/*##${env.FRONTEND_PUBLIC_URL}/*"
+      }
+    },
+    {
+      "clientId": "fsp-backend-admin",
+      "name": "Backend Admin API",
+      "description": "Confidential-клиент backend'а (опционален): client credentials + realm-management (manage-users, view-users) для Admin API — удаление аккаунта, служебные операции",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${env.BACKEND_ADMIN_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": true
+    }
+  ]
+}

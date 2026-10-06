@@ -1,0 +1,24 @@
+# Конфигурация gitleaks (CI: .github/workflows/ci.yml, job gitleaks).
+# Расширяет дефолтные правила; в allowlist — только плейсхолдеры шаблонов окружения и realm
+# Keycloak и общеизвестные dev-дефолты, которые в prod запрещены (backend/app/core/config.py).
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Плейсхолдеры __GEN_*__ (gen-dotenv.sh) и ${env.*} (import-realm.sh), dev-дефолты"
+regexes = [
+  '''__GEN_[A-Z0-9]+_[A-Z0-9]+__''',
+  '''\$\{env\.[A-Za-z0-9_]+\}''',
+  '''dev-internal-token''',
+  '''dev-backend-admin-secret''',
+  '''test-internal-token''',
+]
+
+[[allowlists]]
+description = "Шаблоны окружения и тестовые фикстуры: секретов там нет по построению"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''^backend/tests/conftest\.py$''',
+  # test_app.py: fail-closed-тесты конфига с синтетическими значениями ("a" * 64)
+  '''^backend/tests/test_app\.py$''',
+]

@@ -1,0 +1,56 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+backend/.venv/
+backend/.uv-cache/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# --- Env-файлы и секреты (в git — только *.example) ---
+.env
+.env.*
+*.env
+!.env.example
+!*.env.example
+!.env.mock
+deploy/compose/.env
+# ключи и сертификаты (Caddy, TLS, клиентские сертификаты) — никогда в git
+*.pem
+*.key
+*.p12
+*.pfx
+caddy-data/
+
+# --- Исходные материалы организаторов (ТЗ, регламент, шаблон презентации) — конфиденциально ---
+docs/source/
+*.pptx
+
+# --- Артефакты валидации и нагрузочных прогонов (в git — только отчёты .md) ---
+docs/validation/raw/
+deploy/load/*.json
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+.claude/
+
+# --- Внутренние материалы (план команды) — не публикуем; PROGRESS.md в git входит ---
+/PLAN.md
+
+# --- Внутренние конвенции агентной разработки — не публикуем ---
+/CLAUDE.md
+*.pdf

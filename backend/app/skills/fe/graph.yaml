@@ -1,0 +1,149 @@
+# Граф навыков специализации «Фронтенд» (PLAN.md §3.2–3.3).
+#
+# Теоретическая основа: Квантовая модель компетенций К. Кичинского (2023, открытая
+# публикация, spectralthinking.org). Граф, названия и описания узлов, рёбра, формулы
+# и числовые параметры — разработка команды.
+#
+# Структура файла и смысл полей — как в be/graph.yaml.
+
+specialization:
+  code: fe
+  title: Фронтенд
+  status: active
+  graph_version: "1.0.0"
+
+layers:
+  - {code: D, title: Глубина}
+  - {code: B, title: База}
+  - {code: C, title: Контекст}
+
+decay:
+  half_life_days: {test: 240, fsp: 365, regular: 120}
+  layer_factor: {D: 1.5, B: 1.0, C: 0.75}
+
+weights:
+  test:
+    - {min_score: 0.85, w0: 1.0}
+    - {min_score: 0.7, w0: 0.85}
+    - {min_score: 0.5, w0: 0.45}
+  regular:
+    - {min_score: 0.7, w0: 0.6}
+    - {min_score: 0.5, w0: 0.3}
+  demo_multiplier: 0.85
+
+thresholds:
+  active: 0.5
+  fresh: 0.8
+  dim: 0.5
+
+nodes:
+  - id: fe.D1
+    code: D1
+    layer: D
+    title: JS/TS и рантайм браузера
+    description: event loop, система типов, модули, промисы и асинхронность, замыкания
+  - id: fe.D2
+    code: D2
+    layer: D
+    title: Структуры данных и алгоритмы для UI
+    description: >-
+      выбор структуры под интерфейс, сложность операций со списками и деревьями,
+      иммутабельность, мемоизация, виртуализация больших коллекций
+  - id: fe.D3
+    code: D3
+    layer: D
+    title: Рендеринг и производительность страницы
+    description: DOM, CSS-движок, reflow/repaint, критический путь рендеринга, Web Vitals
+  - id: fe.D4
+    code: D4
+    layer: D
+    title: Сеть и протоколы
+    description: HTTP, кэширование, CORS, cookie, WebSocket/SSE, TLS и CDN
+  - id: fe.B1
+    code: B1
+    layer: B
+    title: Компонентная архитектура (React)
+    description: >-
+      композиция компонентов, хуки, границы ответственности, структура приложения,
+      переиспользование без протечек абстракций
+  - id: fe.B2
+    code: B2
+    layer: B
+    title: Состояние и данные
+    description: >-
+      серверное и клиентское состояние, кэш запросов, инвалидация, нормализация,
+      выбор менеджера состояния под задачу
+  - id: fe.B3
+    code: B3
+    layer: B
+    title: Вёрстка, адаптивность, доступность
+    description: семантика HTML, flex/grid, адаптивные макеты, a11y (ARIA, клавиатура, контраст)
+  - id: fe.B4
+    code: B4
+    layer: B
+    title: Тестирование и отладка фронтенда
+    description: >-
+      юнит- и компонентные тесты, e2e, DevTools, воспроизведение и локализация дефектов,
+      снимки и регрессии
+  - id: fe.B5
+    code: B5
+    layer: B
+    title: Безопасность клиента
+    description: XSS, CSRF, CSP, хранение токенов, auth-потоки (OAuth/PKCE), санитизация ввода
+  - id: fe.C1
+    code: C1
+    layer: C
+    title: Сборка и поставка
+    description: Vite/бандлеры, code splitting, CI, мониторинг ошибок (Sentry), релизы
+  - id: fe.C2
+    code: C2
+    layer: C
+    title: Интеграция с API и контрактами
+    description: OpenAPI/GraphQL-контракты, типизация ответов, обработка ошибок, моки, BFF
+  - id: fe.C3
+    code: C3
+    layer: C
+    title: Дизайн-системы и UX-инженерия
+    description: токены и темы, библиотека компонентов, работа с макетами, UX-паттерны
+  - id: fe.C4
+    code: C4
+    layer: C
+    title: Командная разработка и декомпозиция
+    description: ревью, git-процесс, оценка, декомпозиция фич, техрешения
+
+edges:
+  # вертикальные D → B
+  - {source: fe.D1, target: fe.B1, kind: vertical}
+  - {source: fe.D1, target: fe.B2, kind: vertical}
+  - {source: fe.D2, target: fe.B2, kind: vertical}
+  - {source: fe.D3, target: fe.B1, kind: vertical}
+  - {source: fe.D3, target: fe.B3, kind: vertical}
+  - {source: fe.D4, target: fe.B2, kind: vertical}
+  - {source: fe.D4, target: fe.B5, kind: vertical}
+  # вертикальные B → C
+  - {source: fe.B1, target: fe.C3, kind: vertical}
+  - {source: fe.B1, target: fe.C4, kind: vertical}
+  - {source: fe.B2, target: fe.C2, kind: vertical}
+  - {source: fe.B3, target: fe.C3, kind: vertical}
+  - {source: fe.B4, target: fe.C1, kind: vertical}
+  - {source: fe.B5, target: fe.C2, kind: vertical}
+  - {source: fe.B5, target: fe.C1, kind: vertical}
+  # боковые D
+  - {source: fe.D1, target: fe.D3, kind: lateral}
+  - {source: fe.D2, target: fe.D3, kind: lateral}
+  - {source: fe.D3, target: fe.D4, kind: lateral}
+  # боковые B
+  - {source: fe.B1, target: fe.B2, kind: lateral}
+  - {source: fe.B1, target: fe.B3, kind: lateral}
+  - {source: fe.B2, target: fe.B4, kind: lateral}
+  - {source: fe.B3, target: fe.B4, kind: lateral}
+  - {source: fe.B4, target: fe.B5, kind: lateral}
+  - {source: fe.B2, target: fe.B5, kind: lateral}
+  # боковые C
+  - {source: fe.C1, target: fe.C2, kind: lateral}
+  - {source: fe.C2, target: fe.C3, kind: lateral}
+  - {source: fe.C1, target: fe.C4, kind: lateral}
+  - {source: fe.C3, target: fe.C4, kind: lateral}
+
+# Мосты be ↔ fe объявлены в be/graph.yaml (один раз, в графе источника).
+bridges: []

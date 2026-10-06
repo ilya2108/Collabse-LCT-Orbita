@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <!-- Графитовый брендбука ФСП: цвет шапки браузера = сайдбар -->
+    <meta name="theme-color" content="#1B1C21" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>ФСП.Орбита — обратный подбор ИТ-специалистов</title>
+    <!-- Рантайм-конфиг (window.__ENV__): в compose генерируется envsubst'ом из config.js.template,
+         в dev отдаётся дефолтный public/config.js. Подключается ДО бандла. -->
+    <script src="/config.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

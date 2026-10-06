@@ -1,0 +1,71 @@
+# Списки сборки сопроводительной документации «ФСП.Орбиты» (pandoc).
+# Два варианта — для команды из трёх (`three`) и из двух (`two`) человек; какой список
+# собирать, решается на синке 10 октября. Пути относительно docs/. Файлы, которых ещё нет
+# (06-run-and-api.md, demo-vacancies/report.md, openapi.json), появляются 8–10 октября.
+#
+# Сборка (пример; цель `make docs` — зона infra):
+#   cd docs && pandoc $(yq '.builds.three.files[]' manifest.yaml) \
+#     --metadata-file=manifest.yaml --toc --toc-depth=2 \
+#     --pdf-engine=xelatex -V mainfont="Montserrat" -V lang=ru \
+#     -o "ФСП.Орбита — сопроводительная документация.pdf"
+#   (для .docx — тот же список, `-o ….docx`, без pdf-engine)
+
+title: "ФСП.Орбита — сопроводительная документация"
+subtitle: "Спец. трек ФСП, хакатон «Лидеры цифровой трансформации 2026»"
+author: "Команда «ФСП.Орбита»"
+date: "11 октября 2026"
+lang: ru
+toc: true
+toc-depth: 2
+mainfont: Montserrat
+
+builds:
+  three:
+    description: "Полный набор (роль C отдельная): модель компетенций и roadmap — отдельными файлами"
+    output: "ФСП.Орбита — сопроводительная документация.pdf"
+    files:
+      - 00-approach.md
+      - 01-architecture.md
+      - skills-model.md
+      - 02-testing.md
+      - 03-matching.md
+      - 04-validation.md
+      - validation-report.md
+      - 05-fsp-integration.md
+      - 06-api.md
+      - 07-libraries.md
+      - 08-run.md
+      - security-152fz.md
+      - 09-beyond-mvp.md
+      - roadmap.md
+      - compliance.md
+      - interface.md
+      - demo-script.md
+      - demo-vacancies/report.md
+    attachments:
+      - openapi.json
+      - templates-spec.md
+
+  two:
+    description: "Сокращённый набор (A + B): модель — раздел архитектуры; запуск, API и библиотеки — один файл; roadmap — раздел концепций"
+    output: "ФСП.Орбита — сопроводительная документация.pdf"
+    files:
+      - 00-approach.md
+      - 01-architecture.md          # включает раздел «Модель компетенций» (skills-model.md)
+      - 02-testing.md
+      - 03-matching.md
+      - 04-validation.md
+      - validation-report.md
+      - 05-fsp-integration.md
+      - 06-run-and-api.md           # = 06-api.md + 07-libraries.md (скриптом) + 08-run.md
+      - security-152fz.md
+      - 09-beyond-mvp.md            # включает раздел «Дорожная карта» (roadmap.md)
+      - compliance.md
+      - interface.md
+      - demo-script.md
+      - demo-vacancies/report.md
+    attachments:
+      - openapi.json
+      - templates-spec.md
+
+# Не входят в PDF: README.md (оглавление), PROGRESS.md (журнал), adr/*, drafts/*, source/*.

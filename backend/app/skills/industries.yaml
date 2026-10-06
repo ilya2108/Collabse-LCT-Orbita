@@ -1,0 +1,12 @@
+# Справочник отраслей (PLAN.md §3.2). В MVP отрасль влияет только на отображение
+# и фильтр; категория кандидата = специализация × грейд.
+version: 1
+industries:
+  - {code: it_products, title: ИТ-продукты}
+  - {code: fintech, title: Финтех}
+  - {code: ecommerce, title: E-commerce}
+  - {code: government, title: Госсектор}
+  - {code: telecom, title: Телеком}
+  - {code: industry, title: Промышленность}
+  - {code: education, title: Образование}
+  - {code: other, title: Другое}

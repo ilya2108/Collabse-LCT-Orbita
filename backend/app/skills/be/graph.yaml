@@ -1,0 +1,158 @@
+# Граф навыков специализации «Бэкенд» (PLAN.md §3.2–3.3).
+#
+# Теоретическая основа: Квантовая модель компетенций К. Кичинского (2023, открытая
+# публикация, spectralthinking.org). Граф, названия и описания узлов, рёбра, формулы
+# и числовые параметры — разработка команды.
+#
+# Слои: D — глубина (фундамент), B — база (ежедневная практика), C — контекст
+# (инструменты и среда). Все рёбра «толстые»: узел уже равен ячейке карты, вид ребра
+# нужен для форм профиля и объяснений. Поля description — ориентир для рубрик заданий.
+
+specialization:
+  code: be
+  title: Бэкенд
+  status: active
+  graph_version: "1.0.0"
+
+layers:
+  - {code: D, title: Глубина}
+  - {code: B, title: База}
+  - {code: C, title: Контекст}
+
+# Затухание подтверждений (§3.3): τ = half_life_days[source] × layer_factor[layer].
+# Фундамент (D) забывается медленнее, инструменты контекста (C) меняются быстро.
+decay:
+  half_life_days: {test: 240, fsp: 365, regular: 120}
+  layer_factor: {D: 1.5, B: 1.0, C: 0.75}
+
+# Базовый вес w0 подтверждения по источнику (§3.3). Ступени — по убыванию порога,
+# берётся первая, чей min_score не превышает балл; ниже последней ступени подтверждения нет.
+weights:
+  test:
+    - {min_score: 0.85, w0: 1.0}
+    - {min_score: 0.7, w0: 0.85}
+    - {min_score: 0.5, w0: 0.45}
+  regular:
+    - {min_score: 0.7, w0: 0.6}
+    - {min_score: 0.5, w0: 0.3}
+  # подтверждения из демо-сессии (TEST_DEMO_MODE) записываются с w0 × demo_multiplier
+  demo_multiplier: 0.85
+
+# Пороги силы узла: активен при S ≥ active; свежесть по w_now: свежо ≥ fresh,
+# тускнеет [dim, fresh), погасло < dim.
+thresholds:
+  active: 0.5
+  fresh: 0.8
+  dim: 0.5
+
+nodes:
+  - id: be.D1
+    code: D1
+    layer: D
+    title: Язык и рантайм
+    description: типизация, модель памяти, async/await, стандартная библиотека
+  - id: be.D2
+    code: D2
+    layer: D
+    title: Структуры данных и алгоритмы под задачу
+    description: выбор структуры, сложность, компромиссы память/время
+  - id: be.D3
+    code: D3
+    layer: D
+    title: Конкурентность и ресурсы
+    description: потоки, event loop, пулы, утечки, backpressure
+  - id: be.D4
+    code: D4
+    layer: D
+    title: Устройство СУБД
+    description: индексы, планы, транзакции, изоляция, блокировки
+  - id: be.B1
+    code: B1
+    layer: B
+    title: Проектирование API
+    description: HTTP/REST, контракты, версии, ошибки, идемпотентность
+  - id: be.B2
+    code: B2
+    layer: B
+    title: Поддерживаемый код и тесты
+    description: модульность, рефакторинг, пирамида тестов
+  - id: be.B3
+    code: B3
+    layer: B
+    title: Слой данных
+    description: моделирование, ORM, миграции, целостность
+  - id: be.B4
+    code: B4
+    layer: B
+    title: Отладка и диагностика
+    description: воспроизведение, профилирование, чтение логов и трасс
+  - id: be.B5
+    code: B5
+    layer: B
+    title: Безопасность приложения
+    description: authn/authz, OWASP Top 10, секреты, ПДн
+  - id: be.C1
+    code: C1
+    layer: C
+    title: "Поставка: CI/CD и контейнеры"
+    description: Docker, пайплайны, конфигурация, релизы
+  - id: be.C2
+    code: C2
+    layer: C
+    title: Распределённые системы и интеграции
+    description: очереди, кэш, идемпотентность, саги, ретраи
+  - id: be.C3
+    code: C3
+    layer: C
+    title: Наблюдаемость и эксплуатация
+    description: логи, метрики, трассы, инциденты, SLO
+  - id: be.C4
+    code: C4
+    layer: C
+    title: Командная разработка и декомпозиция
+    description: ревью, git-процесс, оценка, техрешения
+
+edges:
+  # вертикальные D → B
+  - {source: be.D1, target: be.B1, kind: vertical}
+  - {source: be.D1, target: be.B2, kind: vertical}
+  - {source: be.D2, target: be.B3, kind: vertical}
+  - {source: be.D2, target: be.B4, kind: vertical}
+  - {source: be.D3, target: be.B1, kind: vertical}
+  - {source: be.D3, target: be.B4, kind: vertical}
+  - {source: be.D4, target: be.B3, kind: vertical}
+  - {source: be.D4, target: be.B4, kind: vertical}
+  # вертикальные B → C
+  - {source: be.B1, target: be.C2, kind: vertical}
+  - {source: be.B1, target: be.C4, kind: vertical}
+  - {source: be.B2, target: be.C1, kind: vertical}
+  - {source: be.B2, target: be.C4, kind: vertical}
+  - {source: be.B3, target: be.C2, kind: vertical}
+  - {source: be.B4, target: be.C3, kind: vertical}
+  - {source: be.B5, target: be.C1, kind: vertical}
+  - {source: be.B5, target: be.C3, kind: vertical}
+  # боковые D
+  - {source: be.D1, target: be.D3, kind: lateral}
+  - {source: be.D2, target: be.D3, kind: lateral}
+  - {source: be.D3, target: be.D4, kind: lateral}
+  # боковые B
+  - {source: be.B1, target: be.B2, kind: lateral}
+  - {source: be.B1, target: be.B3, kind: lateral}
+  - {source: be.B2, target: be.B3, kind: lateral}
+  - {source: be.B2, target: be.B4, kind: lateral}
+  - {source: be.B3, target: be.B4, kind: lateral}
+  - {source: be.B4, target: be.B5, kind: lateral}
+  - {source: be.B1, target: be.B5, kind: lateral}
+  # боковые C
+  - {source: be.C1, target: be.C3, kind: lateral}
+  - {source: be.C2, target: be.C3, kind: lateral}
+  - {source: be.C1, target: be.C4, kind: lateral}
+  - {source: be.C2, target: be.C4, kind: lateral}
+
+# Мосты в другие специализации (§3.2): нужны для T/П-профилей и межспециализационных
+# потребностей. Мост объявляется один раз — в графе специализации-источника.
+bridges:
+  - {source: be.B1, target: fe.C2, kind: bridge, title: контракт API}
+  - {source: be.C1, target: fe.C1, kind: bridge, title: поставка}
+  - {source: be.B5, target: fe.B5, kind: bridge, title: безопасность}
+  - {source: be.C4, target: fe.C4, kind: bridge, title: команда}

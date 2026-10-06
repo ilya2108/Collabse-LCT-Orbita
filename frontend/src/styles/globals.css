@@ -1,0 +1,273 @@
+/*
+ * Единственная точка входа стилей: Tailwind v4 + токены + JetBrains Mono Variable
+ * (self-hosted, @fontsource-variable/jetbrains-mono — работает в закрытом контуре).
+ * Формат токенов — OKLCH; hex-эквиваленты в комментариях совпадают
+ * с shared/config/tokens.ts бит-в-бит (hex нужны ECharts и SVG).
+ * Тёмной темы нет: токены только в :root, color-scheme: light.
+ *
+ * ПАЛИТРА БРЕНДБУКА ФСП (fsp-russia.ru/press/brandbook): синий #402FFF,
+ * красный #EC1D35, светло-серый #EDEDED, серый #C8C9CA, текст #1B1C21,
+ * белый #FFFFFF; шрифт — JetBrains Mono (SIL OFL).
+ *
+ * Контраст (посчитан по WCAG 2.x):
+ *   белый на синем #402FFF — 6.8:1 → залитые CTA и активные элементы можно прямо
+ *   на --primary; синий ТЕКСТОМ на белом — тоже 6.8:1 (AA/AAA для 14px).
+ *   Hover залитых CTA — --primary-hover #5A49FF (белый 5.5:1), нажатие и синий
+ *   текст на tint — --primary-deep #3326D9 (8.7:1 на белом, 7.5:1 на tint,
+ *   6.4:1 на tint-2). Тёмные кнопки — на графитовом #1B1C21 (белый 17.0:1).
+ *   Фирменный красный #EC1D35 даёт с белым лишь 4.4:1 → залитые destructive-кнопки
+ *   на чуть более тёмном --destructive #D6132B (белый 5.3:1), красный ТЕКСТОМ —
+ *   --status-danger-deep #B00E22 (7.2:1 на белом, 6.2:1 на tint).
+ *   Лавандовый #8F94E3 на белом — 2.8:1: только фон/маркеры/граф, не текст.
+ *   Рамки полей, чекбоксов, радио и трек выключенного Switch — --input #83848C
+ *   (3.7:1 на белом, WCAG 1.4.11 требует 3:1); декоративный --border светлее;
+ *   фирменный серый #C8C9CA на белом (1.9:1) — только декор и текст на тёмном.
+ *
+ * Как перекрашивать: меняются только значения токенов здесь и их hex-двойники
+ * в tokens.ts — компоненты используют классы-токены (hex в tsx запрещены).
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/jetbrains-mono';
+
+:root {
+  color-scheme: light;
+
+  /* — поверхность и текст — */
+  --background: oklch(0.980 0.004 286.3);        /* #F8F8FB фон layout: едва холодный, под синий бренд */
+  --card: oklch(1 0 0);                          /* #FFFFFF */
+  --popover: oklch(1 0 0);
+  --foreground: oklch(0.228 0.010 276.6);        /* #1B1C21 text брендбука, 17.0:1 */
+  --card-foreground: var(--foreground);
+  --popover-foreground: var(--foreground);
+  --muted: oklch(0.959 0.005 286.3);             /* #F1F1F5 */
+  --muted-foreground: oklch(0.474 0.018 281.6);  /* #5A5B66 вторичный текст, AA 6.7:1 */
+  --border: oklch(0.921 0.008 286.2);            /* #E4E4EA декоративные разделители, карточки */
+  --input: oklch(0.615 0.012 280.3);             /* #83848C рамки контролов ввода, 3.7:1 (1.4.11) */
+  --ring: oklch(0.500 0.283 272.9);              /* фокус-кольцо = primary #402FFF */
+
+  /* — бренд — */
+  --primary: oklch(0.500 0.283 272.9);           /* #402FFF синий ФСП (бел. 6.8:1 — можно залитые CTA) */
+  --primary-foreground: oklch(1 0 0);            /* белый на синем */
+  --primary-hover: oklch(0.546 0.255 277.9);     /* #5A49FF hover (бел. 5.5:1) */
+  --primary-active: oklch(0.441 0.251 272.4);    /* #3326D9 нажатие */
+  --primary-deep: oklch(0.441 0.251 272.4);      /* #3326D9 синий ТЕКСТОМ и залитые CTA: 8.7:1 */
+  --primary-deep-hover: oklch(0.390 0.221 272.4);/* #2A1FB8 hover залитых CTA, 10.6:1 */
+  --primary-tint: oklch(0.953 0.024 291.0);      /* #EFEDFF выделение/hover строк */
+  --primary-tint-2: oklch(0.903 0.050 290.3);    /* #DEDAFF активные плашки */
+  --dark: oklch(0.228 0.010 276.6);              /* #1B1C21 графит брендбука: кнопки, заголовки-акценты */
+  --dark-foreground: oklch(1 0 0);
+  --deep: oklch(0.291 0.015 279.8);              /* #2A2B33 светлее графита: hover тёмных кнопок */
+  --violet: oklch(0.694 0.116 280.2);            /* #8F94E3 лаванда от синего: маркеры, слой C графа (не текст) */
+  --violet-tint: oklch(0.955 0.015 282.0);       /* #EEEFFA фон лавандовых плашек */
+  --sidebar: oklch(0.228 0.010 276.6);           /* #1B1C21 сайдбар = dark */
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-muted: oklch(0.835 0.002 247.8);     /* #C8C9CA серый брендбука: текст пунктов, 10.3:1 на dark */
+  --sidebar-active: oklch(0.500 0.283 272.9);    /* #402FFF подложка активного пункта (текст — белый 6.8:1) */
+
+  --secondary: oklch(0.959 0.005 286.3);         /* secondary-кнопки = muted */
+  --secondary-foreground: oklch(0.228 0.010 276.6);
+  --accent: oklch(0.953 0.024 291.0);            /* hover меню/строк = primary-tint */
+  --accent-foreground: oklch(0.228 0.010 276.6); /* текст на accent = dark */
+  --destructive: oklch(0.557 0.218 24.1);        /* #D6132B красный брендбука чуть темнее, бел. 5.3:1 */
+  --destructive-foreground: oklch(1 0 0);
+
+  /* — семантические статусы: тройки core / deep / tint (deep-на-tint ≥ 4.5) —
+       brand — «свежо»/активный узел; warning — «тускнеет»; draft — «погасло» */
+  --status-draft: oklch(0.474 0.018 281.6);        /* #5A5B66 */
+  --status-draft-deep: oklch(0.393 0.015 280.6);   /* #44454E, 8.5:1 */
+  --status-draft-tint: oklch(0.959 0.005 286.3);   /* #F1F1F5 */
+  --status-progress: oklch(0.694 0.116 280.2);     /* #8F94E3 лаванда */
+  --status-progress-deep: oklch(0.436 0.163 277.3);/* #4040A8, 7.3:1 */
+  --status-progress-tint: oklch(0.955 0.015 282.0);/* #EEEFFA */
+  --status-success: oklch(0.654 0.181 149.3);      /* #09AD4D */
+  --status-success-deep: oklch(0.507 0.138 150.0); /* #067A37, 5.0:1 */
+  --status-success-tint: oklch(0.968 0.025 160.6); /* #E7FAEF */
+  --status-warning: oklch(0.702 0.148 71.6);       /* #D78D0E */
+  --status-warning-deep: oklch(0.546 0.113 72.7);  /* #98640A, 4.7:1 */
+  --status-warning-tint: oklch(0.976 0.022 80.7);  /* #FFF6E7 */
+  --status-danger: oklch(0.603 0.232 23.6);        /* #EC1D35 красный брендбука */
+  --status-danger-deep: oklch(0.482 0.188 24.0);   /* #B00E22, 6.2:1 */
+  --status-danger-tint: oklch(0.951 0.022 10.6);   /* #FDE9EB */
+  --status-brand: oklch(0.500 0.283 272.9);        /* #402FFF */
+  --status-brand-deep: oklch(0.441 0.251 272.4);   /* #3326D9, 6.4:1 на tint */
+  --status-brand-tint: oklch(0.903 0.050 290.3);   /* #DEDAFF */
+
+  /* — слои графа навыков (hex-двойники в tokens.ts LAYER_COLORS) — */
+  --layer-d: oklch(0.228 0.010 276.6); /* #1B1C21 D — глубина */
+  --layer-b: oklch(0.500 0.283 272.9); /* #402FFF B — база */
+  --layer-c: oklch(0.694 0.116 280.2); /* #8F94E3 C — контекст */
+
+  /* — категориальная палитра графиков — */
+  --chart-1: oklch(0.500 0.283 272.9); /* #402FFF */
+  --chart-2: oklch(0.228 0.010 276.6); /* #1B1C21 */
+  --chart-3: oklch(0.694 0.116 280.2); /* #8F94E3 */
+  --chart-4: oklch(0.554 0.092 209.7); /* #148190 бирюза */
+  --chart-5: oklch(0.609 0.128 72.0);  /* #B1740B охра */
+  --chart-6: oklch(0.474 0.018 281.6); /* #5A5B66 */
+
+  /* — геометрия — */
+  --radius: 0.625rem;          /* 10px базовый (карточки) */
+  --radius-sm: calc(var(--radius) - 4px);   /* 6px  чипы, теги */
+  --radius-md: calc(var(--radius) - 2px);   /* 8px  кнопки, инпуты */
+  --radius-lg: var(--radius);               /* 10px карточки */
+  --radius-xl: calc(var(--radius) + 6px);   /* 16px модалки, витринные карточки */
+
+  /* — тени: цвет rgba(27,28,33,…) = dark #1B1C21 — */
+  --shadow-card: 0 0 8px rgba(27, 28, 33, 0.08), 0 2px 4px rgba(27, 28, 33, 0.05);
+  --shadow-overlay: 0 0 20px rgba(27, 28, 33, 0.10), 0 12px 20px rgba(27, 28, 33, 0.06);
+  --shadow-drag: 0 0 32px rgba(27, 28, 33, 0.10), 0 32px 32px rgba(27, 28, 33, 0.06);
+}
+
+@theme inline {
+  /* JetBrains Mono Variable — шрифт брендбука ФСП (SIL OFL, в бандле). */
+  --font-sans: 'JetBrains Mono Variable', ui-monospace, 'Segoe UI', system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-deep: var(--primary-deep);
+  --color-primary-deep-hover: var(--primary-deep-hover);
+  --color-primary-tint: var(--primary-tint);
+  --color-primary-tint-2: var(--primary-tint-2);
+  --color-dark: var(--dark);
+  --color-dark-foreground: var(--dark-foreground);
+  --color-deep: var(--deep);
+  --color-violet: var(--violet);
+  --color-violet-tint: var(--violet-tint);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  /* статусные тройки → утилиты bg-status-*, text-status-*-deep, bg-status-*-tint */
+  --color-status-draft: var(--status-draft);
+  --color-status-draft-deep: var(--status-draft-deep);
+  --color-status-draft-tint: var(--status-draft-tint);
+  --color-status-progress: var(--status-progress);
+  --color-status-progress-deep: var(--status-progress-deep);
+  --color-status-progress-tint: var(--status-progress-tint);
+  --color-status-success: var(--status-success);
+  --color-status-success-deep: var(--status-success-deep);
+  --color-status-success-tint: var(--status-success-tint);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-deep: var(--status-warning-deep);
+  --color-status-warning-tint: var(--status-warning-tint);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-deep: var(--status-danger-deep);
+  --color-status-danger-tint: var(--status-danger-tint);
+  --color-status-brand: var(--status-brand);
+  --color-status-brand-deep: var(--status-brand-deep);
+  --color-status-brand-tint: var(--status-brand-tint);
+  --color-layer-d: var(--layer-d);
+  --color-layer-b: var(--layer-b);
+  --color-layer-c: var(--layer-c);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --radius-sm: var(--radius-sm); --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg); --radius-xl: var(--radius-xl);
+  --shadow-card: var(--shadow-card); --shadow-overlay: var(--shadow-overlay);
+  --shadow-drag: var(--shadow-drag);
+}
+
+@layer base {
+  /* Tailwind v4: дефолтный цвет рамок — currentColor. Возвращаем shadcn-базу,
+     чтобы «голый» класс border давал --border, а не почти чёрный foreground. */
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  /* JetBrains Mono шире гуманистических гротесков: при базовых 14px слегка
+     ужимаем трекинг (-0.01em), чтобы строки не разваливались. */
+  body { @apply bg-background text-foreground font-sans antialiased; font-size: 14px; letter-spacing: -0.01em; }
+  :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Контент: max-width 1440, отступ 24px, на планшете 16px. */
+.app-content {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 991px) {
+  .app-content {
+    padding: 16px;
+  }
+}
+
+/* Skeleton-перелив: shimmer поверх bg-muted */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    var(--primary-tint) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Длинные тексты (политика ПДн): читаемая типографика без плагина typography. */
+.prose-policy h2 { @apply mt-6 mb-2 text-base font-semibold; }
+.prose-policy p { @apply my-2 text-sm leading-relaxed; }
+.prose-policy ul { @apply my-2 list-disc space-y-1 pl-5 text-sm leading-relaxed; }
+
+/* prefers-reduced-motion: CSS-анимации гасятся; motion/react
+   управляется MotionConfig reducedMotion="user" в корне приложения. */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

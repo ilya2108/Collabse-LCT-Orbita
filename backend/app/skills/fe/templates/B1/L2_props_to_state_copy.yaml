@@ -1,0 +1,130 @@
+# Эталонный шаблон fe.B1 L2 (Компонентная архитектура React, анализ потока данных).
+# Формат — docs/templates-spec.md. Вид: code_review (строка 50 %, объяснение 50 %).
+id: fe.B1.L2.props_to_state_copy
+node: fe.B1
+level: 2
+kind: code_review
+title: "Копия props в useState устаревает при обновлении родителя"
+status: draft
+author: "эталон, 6 октября (W4)"
+defect_class: stale_derived_state
+
+concept: >-
+  Производное состояние в React: аргумент useState читается только при монтировании,
+  поэтому копия props в state не обновляется при новых props; в состоянии держат только
+  то, что меняет сам компонент (параметры сортировки/фильтра), а список вычисляют из props
+  (useMemo); сброс локальной копии через key — если копия действительно нужна;
+  синхронизация state с props через useEffect — костыль.
+
+invariant: >-
+  Компонент получает массив через props и копирует его в useState ради локальной операции
+  (сортировка, выбор, черновик); родитель периодически передаёт новый массив; локальные
+  фильтры и операции работают, а данные устаревают; в условии описан симптом и источник
+  обновления props; ровно один дефект, 15–40 строк, остальной код корректен.
+
+vary: >-
+  Сущности (товары, задачи, сотрудники, сообщения), локальная операция (сортировка, выбор
+  строк, черновик редактирования), источник обновления props (polling TanStack Query,
+  смена фильтра/категории, websocket), TypeScript или JavaScript, верстка списка/таблицы.
+
+forbidden_changes: >-
+  Не убирать локальную операцию с setState над копией — без неё копирование выглядит
+  бессмысленным и дефект очевиден. Не добавлять в код useEffect-синхронизацию state с props
+  (это другой дефект). Не оставлять подсказок в комментариях и именах (например,
+  `staleRows`). Не превышать 40 строк и не добавлять второй дефект (ключи списка,
+  утечка эффекта).
+
+trap: >-
+  Предложить `useEffect(() => setRows(products), [products])` как основное решение (лишний
+  рендер, затирание локальной сортировки, два источника правды); указать строку с useMemo
+  или его зависимостями как причину; «добавить products в зависимости useMemo».
+
+stack_tags: [react, typescript]
+
+rubric:
+  - id: mechanism
+    w: 0.4
+    text: >-
+      Объясняет механизм: аргумент useState используется только как начальное значение,
+      новые props в state не попадают — компонент показывает первый массив.
+  - id: fix_derived
+    w: 0.4
+    text: >-
+      Предлагает хранить в state только собственные параметры (сортировка/фильтр)
+      и вычислять список из props (useMemo), либо сброс через key при смене источника;
+      синхронизация через useEffect не считается основным решением.
+  - id: symptom_link
+    w: 0.2
+    text: >-
+      Связывает симптом (фильтр и сортировка работают, данные устарели) с состоянием,
+      оторванным от props, а не с запросом данных или кэшем.
+
+anchor_variant:
+  statement: |
+    Родитель `CatalogPage` загружает товары через TanStack Query и перерисовывает
+    `ProductTable` с новым массивом `products` каждые 30 секунд (`refetchInterval`)
+    и после смены категории. Тестировщик обнаружил: после смены категории таблица продолжает
+    показывать товары старой категории, пока страница не перезагружена; при этом фильтр
+    «Только в наличии» и сортировка по цене работают.
+
+    Строки пронумерованы с 1. Укажите номер строки с дефектом класса «производное состояние
+    рассинхронизировано с props» и объясните, как исправить компонент.
+  code: |
+    import { useMemo, useState } from "react";
+
+    type Product = { id: string; title: string; price: number; inStock: boolean };
+
+    type Props = { products: Product[]; onOpen: (id: string) => void };
+
+    export function ProductTable({ products, onOpen }: Props) {
+      const [rows, setRows] = useState<Product[]>(products);
+      const [onlyInStock, setOnlyInStock] = useState(false);
+
+      const sortByPrice = () => setRows([...rows].sort((a, b) => a.price - b.price));
+
+      const visible = useMemo(
+        () => (onlyInStock ? rows.filter((p) => p.inStock) : rows),
+        [rows, onlyInStock],
+      );
+
+      return (
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              checked={onlyInStock}
+              onChange={(e) => setOnlyInStock(e.target.checked)}
+            />
+            Только в наличии
+          </label>
+          <button onClick={sortByPrice}>Сначала дешевле</button>
+          <ul>
+            {visible.map((p) => (
+              <li key={p.id} onClick={() => onOpen(p.id)}>
+                {p.title} — {p.price} ₽
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+  answer_key:
+    line: 8
+    accepted_lines: [8]
+  reference_answer: |
+    Строка 8: `useState(products)` использует props только как начальное значение —
+    при последующих рендерах с новым `products` состояние `rows` не обновляется, и таблица
+    «застывает» на первом массиве; фильтр и сортировка работают, потому что оперируют
+    этой же копией. Исправление: не копировать props в состояние; хранить в state только
+    то, что меняет сам компонент (`sortKey`, `onlyInStock`), а список вычислять из props:
+    `const visible = useMemo(() => { const r = onlyInStock ? products.filter(p => p.inStock)
+    : products; return sortKey ? [...r].sort(byPrice) : r; }, [products, onlyInStock,
+    sortKey])`. Вариант `useEffect(() => setRows(products), [products])` — костыль: лишний
+    рендер, затирание локальной сортировки, два источника правды. Если локальная копия
+    действительно нужна (черновик редактирования), сбрасывать её через `key` на компоненте
+    при смене категории.
+  estimated_minutes: 3
+
+difficulty_anchor: {p_junior: 0.35, p_middle: 0.75, p_senior: 0.9}
+max_time_sec: 240
+max_answer_chars: 600

@@ -1,0 +1,105 @@
+# Достижения ФСП → подтверждения узлов (PLAN.md §3.5).
+#
+# w0 = tier_weights[result_tier] × node.weight; τ = half_life_days × layer_factor[слой узла]
+# (layer_factor — из graph.yaml специализации узла). Уровень подтверждения — по правилу
+# `level` дисциплины: по перцентилю (топ-N % участников) или по тиру результата.
+#
+# node_scope:
+#   fixed                    — узлы заданы абсолютными id (hackathon_backend → be.B1 …);
+#   candidate_specialization — коды узлов (D2, D1) берутся в специализации кандидата из
+#                              списка specializations; если у кандидата её нет —
+#                              fallback_specialization.
+# match — подстроки (в нижнем регистре) для классификации текстового поля discipline
+# из реестра ФСП; реальный состав полей уточняем у экспертов ФСП (docs/05-fsp-integration.md).
+version: 1
+
+half_life_days: 365
+
+tier_weights:
+  winner: 1.0        # победа
+  prize: 0.8         # призёр
+  finalist: 0.6      # финалист
+  participant: 0.35  # участие
+
+# командное событие: дополнительно узел C4 специализации кандидата с весом 0.5 × tier
+team_bonus:
+  node_code: C4
+  weight: 0.5
+
+# мероприятие без результата (участие без тира): только свежесть на узлах трека
+participation_only:
+  w0: 0.2
+  level: 1
+
+disciplines:
+  - code: algorithmic
+    title: Алгоритмическое программирование (олимпиада)
+    match: [олимпиад, алгоритмическ, спортивное программирование, icpc, competitive]
+    node_scope: candidate_specialization
+    specializations: [be, fe, data]
+    fallback_specialization: be
+    nodes:
+      - {code: D2, weight: 1.0}
+      - {code: D1, weight: 0.6}
+    level:
+      by: percentile
+      percentile:
+        - {top_percent: 10, level: 3}
+        - {top_percent: 30, level: 2}
+      default: 1
+
+  - code: hackathon_backend
+    title: Хакатон, трек «бэкенд»
+    match: [хакатон бэкенд, хакатон backend, backend track]
+    node_scope: fixed
+    nodes:
+      - {id: be.B1, weight: 1.0}
+      - {id: be.B2, weight: 1.0}
+      - {id: be.C1, weight: 1.0}
+      - {id: be.C4, weight: 1.0}
+    level:
+      by: tier
+      tier: {winner: 2, prize: 2, finalist: 2, participant: 1}
+      default: 1
+
+  - code: hackathon_frontend
+    title: Хакатон, трек «фронтенд»
+    match: [хакатон фронтенд, хакатон frontend, frontend track]
+    node_scope: fixed
+    nodes:
+      - {id: fe.B1, weight: 1.0}
+      - {id: fe.B2, weight: 1.0}
+      - {id: fe.C1, weight: 1.0}
+      - {id: fe.C4, weight: 1.0}
+    level:
+      by: tier
+      tier: {winner: 2, prize: 2, finalist: 2, participant: 1}
+      default: 1
+
+  - code: ctf
+    title: CTF / информационная безопасность
+    match: [ctf, информационная безопасност, кибербезопасност, security]
+    node_scope: candidate_specialization
+    specializations: [be, fe, data]
+    fallback_specialization: be
+    nodes:
+      - {code: B5, weight: 1.0}
+      - {code: C3, weight: 0.5}
+    level:
+      by: tier
+      tier: {winner: 2, prize: 2, finalist: 1, participant: 1}
+      default: 1
+
+  - code: product
+    title: Продуктовое программирование
+    match: [продуктовое программирование, продуктов, product]
+    node_scope: candidate_specialization
+    specializations: [be, fe, data]
+    fallback_specialization: be
+    nodes:
+      - {code: C4, weight: 1.0}
+      - {code: B1, weight: 1.0}
+    level:
+      by: tier
+      tier: {winner: 2, prize: 2, finalist: 1, participant: 1}
+      default: 1

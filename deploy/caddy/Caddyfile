@@ -1,0 +1,39 @@
+# Caddy прод-стенда «ФСП.Орбита» (deploy/compose/docker-compose.prod.yml).
+# Автоматический HTTPS: Let's Encrypt для {$PUBLIC_DOMAIN} (email {$ACME_EMAIL});
+# сертификаты — в томе caddy_data, переживают пересоздание контейнера.
+#
+# Маршруты (handle-блоки взаимоисключающие, проверяются по порядку):
+#   /auth/*  → keycloak:8080  — Keycloak живёт на под-пути (KC_HTTP_RELATIVE_PATH=/auth),
+#              путь сохраняется как есть; X-Forwarded-* Caddy ставит сам (KC_PROXY_HEADERS)
+#   /mail/*  → mailpit:8025   — «Почта стенда» (MP_WEBROOT=mail) за basic-auth;
+#              {$MAILPIT_BASIC_AUTH} — bcrypt-хэш (docs/08-run.md §8), пользователь mail
+#   остальное → frontend:8080 — nginx: статика SPA c fallback на /index.html (включая
+#              /tma/*), прокси /api → backend:8000 (timeout 300 c под LLM) и блокировка
+#              /api/v1/internal/* — поэтому /api НЕ проксируется из Caddy напрямую.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$PUBLIC_DOMAIN} {
+	encode gzip
+
+	# голые пути без слэша — на канонические
+	redir /auth /auth/ 308
+	redir /mail /mail/ 308
+
+	handle /auth/* {
+		reverse_proxy keycloak:8080
+	}
+
+	handle /mail/* {
+		basic_auth {
+			mail {$MAILPIT_BASIC_AUTH}
+		}
+		reverse_proxy mailpit:8025
+	}
+
+	handle {
+		reverse_proxy frontend:8080
+	}
+}

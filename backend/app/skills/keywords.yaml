@@ -1,0 +1,152 @@
+# Словарь «ключевое слово → узел» для режима LLM_PROVIDER=rules (PLAN.md §5.1, §6).
+#
+# Правила сопоставления (app/modules/skills/service.py::match_keywords): текст приводится
+# к нижнему регистру; слово из словаря совпадает с началом слова в тексте (стем «типизац»
+# покрывает «типизация», «типизацию»); слова ≤ 3 символов и слова со знаками
+# («c#», "ci/cd") сравниваются целиком. Веса у ключевых слов нет — важность узла
+# в потребности считается по числу попаданий.
+version: 1
+
+# ключевые слова самой специализации (помимо попаданий в её узлы)
+specializations:
+  be: [бэкенд, бекенд, backend, серверн, server-side, микросервис, python-разработчик,
+       java-разработчик, go-разработчик, api-разработ, highload]
+  fe: [фронтенд, фронт-энд, frontend, react, vue, angular, вёрстк, верстк, интерфейс, spa,
+       ui-разработ, web-разработчик, веб-разработчик]
+  data: [данн, data engineer, data analyst, дата-инженер, аналитик данных, etl, dwh,
+         хранилищ, clickhouse, pipeline, bi, дашборд]
+
+nodes:
+  # ---------- Бэкенд ----------
+  be.D1: [python, java, golang, kotlin, "c#", ".net", rust, php, asyncio, "async/await",
+          корутин, типизац, рантайм, сборщик мусора, jvm, стандартная библиотек, gil]
+  be.D2: [алгоритм, структуры данных, сложност, big-o, хеш-таблиц, дерев, графов, сортировк,
+          оптимизация памяти, leetcode, двоичный поиск]
+  be.D3: [многопоточ, конкурентн, event loop, пул потоков, пул соединений, утечк,
+          backpressure, блокировк, дедлок, deadlock, race condition, гонк, семафор]
+  be.D4: [индекс, план запроса, explain, транзакц, изоляц, mvcc, vacuum, postgresql, postgres,
+          mysql, устройство субд, b-tree, oracle, mssql]
+  be.B1: [rest, http, api, openapi, swagger, контракт, версионирован, идемпотент, grpc,
+          graphql, коды ошибок, дизайн api, webhook]
+  be.B2: [unit-тест, юнит-тест, pytest, junit, рефакторинг, модульност, чистый код,
+          пирамида тестов, покрытие, tdd, solid, поддерживаем, читаем]
+  be.B3: [orm, sqlalchemy, hibernate, миграц, alembic, liquibase, flyway, моделирование данных,
+          целостност, внешние ключ, схема бд, django orm, jpa, слой данных]
+  be.B4: [отладк, дебаг, профилирован, логи, трасс, воспроизвед, диагностик, flame graph,
+          профайлер, memory leak, pprof, разбор инцидент]
+  be.B5: [безопасност, owasp, аутентификац, авторизац, oauth, jwt, секрет, персональные данные,
+          пдн, 152-фз, инъекц, sql injection, xss, csrf, шифрован, rbac, keycloak]
+  be.C1: [docker, "ci/cd", пайплайн, gitlab ci, github actions, контейнер, kubernetes, k8s, helm,
+          релиз, деплой, конфигурац, сборка образ, compose]
+  be.C2: [очеред, kafka, rabbitmq, nats, кэш, redis, распределённ, распределенн, саг, saga,
+          ретра, retry, outbox, брокер, интеграц, event-driven, cqrs]
+  be.C3: [наблюдаем, observability, метрик, prometheus, grafana, логирован, трассировк,
+          opentelemetry, jaeger, инцидент, slo, sla, алерт, мониторинг, дежурств, on-call]
+  be.C4: [код-ревью, code review, ревью, git, git-flow, декомпозиц, оценка задач,
+          техническое решение, rfc, adr, менторств, планирован, спринт, командн, лидирован]
+
+  # ---------- Фронтенд ----------
+  fe.D1: [javascript, typescript, js, ts, event loop, промис, promise, async, es modules,
+          esm, модули, типизац, замыкан, прототип, браузерный рантайм, v8, dom api]
+  fe.D2: [алгоритм, структуры данных, сложност, виртуализац, список, дерево компонент, diff,
+          иммутабельн, мемоизац, сортировк, поиск, нормализация данных]
+  fe.D3: [рендеринг, производительност, dom, reflow, repaint, css-движок, layout, lighthouse,
+          core web vitals, lcp, cls, анимац, композитинг, 60 fps, критический путь]
+  fe.D4: [http, кэширован, cors, cookie, websocket, sse, "http/2", tls, cdn, заголовк, preflight,
+          fetch, xhr, сеть, сетев]
+  fe.B1: [react, компонент, хук, hooks, vue, angular, svelte, композиц, пропс, props,
+          архитектура компонент, feature-sliced, fsd, next.js, nextjs, ssr]
+  fe.B2: [состояни, state, redux, zustand, mobx, tanstack query, react query, swr,
+          серверное состояние, кэш запросов, нормализац, store, effector, инвалидац]
+  fe.B3: [вёрстк, верстк, css, html, адаптив, responsive, flexbox, grid, доступност,
+          accessibility, a11y, aria, wcag, tailwind, семантическ, кроссбраузер, scss]
+  fe.B4: [тестирован, jest, vitest, testing library, cypress, playwright, e2e, storybook,
+          devtools, отладк, дебаг, snapshot, покрытие, регресси]
+  fe.B5: [xss, csrf, безопасност, oauth, pkce, токен, jwt, csp, content security policy,
+          аутентификац, httponly, санитайз, dompurify, секрет, авторизац]
+  fe.C1: [vite, webpack, сборк, bundle, bundler, "ci/cd", деплой, sentry, мониторинг ошибок,
+          source map, tree shaking, code splitting, npm, pnpm, релиз, esbuild, rollup]
+  fe.C2: [api, rest, graphql, openapi, контракт, типизация api, codegen, swagger, интеграц,
+          бэкенд, backend, bff, grpc-web, mock, msw]
+  fe.C3: [дизайн-систем, design system, ui kit, ui-kit, figma, токены, storybook, ux,
+          компонентная библиотек, shadcn, material, antd, темизац, pixel perfect, макет]
+  fe.C4: [код-ревью, code review, ревью, git, декомпозиц, оценка задач, планирован, спринт,
+          agile, менторств, rfc, adr, командн, техническое решение]
+
+  # ---------- Данные (preview) ----------
+  data.D1: [python, sql, pandas, numpy, polars, векторн, типы данных, jupyter, scala, pyspark,
+            обработка данных, скрипт]
+  data.D2: [алгоритм, структуры данных, сложност, сортировк, соединен, join, хеширован,
+            потоков, приближённ, hyperloglog, bloom, оптимизац]
+  data.D3: [статистик, вероятност, распределен, гипотез, p-value, доверительн, "a/b", дисперси,
+            регресси, выборк, смещен, байес, эксперимент]
+  data.D4: [clickhouse, колоночн, партицион, olap, oltp, хранилищ, dwh, data lake, greenplum,
+            bigquery, snowflake, индекс, parquet, lakehouse]
+  data.B1: [моделирование данных, звезд, снежинк, нормализац, dimension, fact table, data vault,
+            схема, словарь данных, версионирование схем, слои данных, витрин]
+  data.B2: [etl, elt, пайплайн, pipeline, airflow, оркестрац, инкрементальн, идемпотент, загрузк,
+            batch, dag, перезапуск, dbt, prefect, dagster]
+  data.B3: [качество данных, data quality, валидац, great expectations, контракт данных,
+            мониторинг данных, полнот, свежест, дубликат, аномал, тест данных, soda]
+  data.B4: [оконн, window function, оптимизация запрос, план запроса, explain, материализ,
+            агрегат, cte, аналитический sql, группировк, сложные запросы, тяжёлые запросы]
+  data.B5: [маскирован, доступ к данным, пдн, персональные данные, 152-фз, шифрован, анонимизац,
+            аудит доступ, row level security, gdpr, роли доступа, безопасность данных]
+  data.C1: [docker, "ci/cd", airflow, dbt, kubernetes, облак, s3, terraform, инфраструктур,
+            деплой, планировщик, поставк, yandex cloud]
+  data.C2: [kafka, cdc, debezium, потоков, streaming, интеграц, api-источник, формат обмена,
+            avro, json, webhook, коннектор, flink, spark streaming]
+  data.C3: [bi, дашборд, визуализац, metabase, superset, tableau, power bi, datalens, метрик,
+            отчёт, продуктовые метрики, график, аналитик]
+  data.C4: [постановка задач, коммуникац, бизнес, презентац, документац, ревью, командн,
+            заказчик, требован, стейкхолдер, планирован, менторств]
+
+# Направления вне MVP (§5.1): need_parse/rules возвращают specialization: null и
+# warning specialization_not_supported с ближайшей специализацией (nearest);
+# UI предлагает «Разобрать как <nearest>». qa и devops здесь временно — до появления
+# их preview-графов (8–9 октября) они перейдут в каталог специализаций.
+unsupported_specializations:
+  - code: mobile
+    title: Мобильная разработка
+    nearest: fe
+    keywords: [android, ios, swift, swiftui, kotlin multiplatform, flutter, react native,
+               мобильн, mobile]
+  - code: ml
+    title: Машинное обучение
+    nearest: data
+    keywords: [машинное обучение, machine learning, ml-инженер, ml engineer, deep learning,
+               нейросет, pytorch, tensorflow, llm, nlp, computer vision, data scientist,
+               дата-сайентист]
+  - code: qa
+    title: Тестирование
+    nearest: be
+    keywords: [qa, тестировщик, qa engineer, автотест, автоматизация тестирования,
+               ручное тестирование, тест-кейс, selenium, appium]
+  - code: devops
+    title: DevOps и инфраструктура
+    nearest: be
+    keywords: [devops, sre, инфраструктурный инженер, системный администратор, terraform,
+               ansible, kubernetes-администр, платформенный инженер, platform engineer]
+  - code: analytics
+    title: Бизнес- и системная аналитика
+    nearest: data
+    keywords: [бизнес-аналитик, системный аналитик, продуктовый аналитик, bpmn, uml,
+               аналитик требований, business analyst, system analyst]
+  - code: management
+    title: Менеджмент
+    nearest: be
+    keywords: [менеджер проект, project manager, product manager, продакт-менеджер,
+               руководитель отдела, тимлид, scrum master, delivery manager, cto]
+  - code: gamedev
+    title: Разработка игр
+    nearest: fe
+    keywords: [unity, unreal, геймдев, gamedev, game developer, игровой разработчик]
+  - code: embedded
+    title: Встраиваемые системы
+    nearest: be
+    keywords: [embedded, встраиваем, микроконтроллер, stm32, arduino, firmware, прошивк]
+  - code: design
+    title: UX/UI-дизайн
+    nearest: fe
+    keywords: [ux-дизайнер, ui-дизайнер, дизайнер интерфейсов, продуктовый дизайнер,
+               графический дизайнер]
